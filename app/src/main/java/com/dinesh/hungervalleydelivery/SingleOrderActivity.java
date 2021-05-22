@@ -24,11 +24,14 @@ import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.FirebaseError;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -54,6 +57,7 @@ public class SingleOrderActivity extends AppCompatActivity {
     EditText res_pay, status, customerPaymentType;
     DatabaseReference mDeliveryBoysDatabase;
     List<String> listItems, listItems1;
+    String dateToStr;
 
     private myadapter adapter;
 
@@ -321,7 +325,7 @@ public class SingleOrderActivity extends AppCompatActivity {
                                     status.requestFocus();
                                     return;
 
-                                }else {
+                                } else {
 
                                     Map userMap = new HashMap();
                                     userMap.put("resPayAmount", res_pay.getText().toString());
@@ -360,22 +364,98 @@ public class SingleOrderActivity extends AppCompatActivity {
             public void onClick(View view) {
 
                 new AlertDialog.Builder(SingleOrderActivity.this)
-                        .setMessage("are you sure?")
+                        .setMessage("COMPLETE Order? are you sure?")
                         .setNegativeButton(android.R.string.no, null)
                         .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
 
                             public void onClick(DialogInterface arg0, int arg1) {
 
-                                Date today = new Date();
-                                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm");
-                                String dateToStr = format.format(today);
+                                progressbar.setVisibility(View.VISIBLE);
 
-                                Toast.makeText(SingleOrderActivity.this, dateToStr, Toast.LENGTH_LONG).show();
+                                if (customerPaymentType.getText().toString().isEmpty()) {
+
+                                    progressbar.setVisibility(View.GONE);
+                                    customerPaymentType.setError("error");
+                                    customerPaymentType.requestFocus();
+                                    return;
+
+                                } else {
+
+
+                                    Date today = new Date();
+                                    SimpleDateFormat format = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
+                                    dateToStr = format.format(today);
+
+                                    moveGameRoom(FirebaseDatabase.getInstance().getReference().child("Orders List").child("User View").child(userId), FirebaseDatabase.getInstance().getReference().child("DeliveryBoys").child(my_user_id).child("CompletedOrders").child(dateToStr + "(" + userId + ")"));
+                                    progressbar.setVisibility(View.GONE);
+
+                                }
 
 
                             }
                         }).create().show();
 
+
+            }
+        });
+    }
+
+    private void moveGameRoom(DatabaseReference fromPath, DatabaseReference toPath) {
+        fromPath.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                toPath.setValue(dataSnapshot.getValue(), new DatabaseReference.CompletionListener() {
+                    @Override
+                    public void onComplete(DatabaseError firebaseError, DatabaseReference firebase) {
+                        if (firebaseError == null) {
+
+                            Map userMap = new HashMap();
+                            userMap.put("resPayAmount", res_pay.getText().toString());
+                            userMap.put("amountStatus", status.getText().toString());
+                            userMap.put("customerPaymentType", customerPaymentType.getText().toString());
+                            userMap.put("Status", "Complete");
+                            userMap.put("profitAmount", intTotal - Integer.parseInt(res_pay.getText().toString()));
+
+                            FirebaseDatabase.getInstance().getReference().child("DeliveryBoys").child(my_user_id).child("CompletedOrders").child(dateToStr + "(" + userId + ")").updateChildren(userMap).addOnCompleteListener(new OnCompleteListener() {
+                                @Override
+                                public void onComplete(@NonNull @NotNull Task task) {
+
+                                    if (task.isSuccessful()) {
+
+                                        FirebaseDatabase.getInstance().getReference().child("DeliveryBoys").child(my_user_id).child("Orders").child(userId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                            @Override
+                                            public void onComplete(@NonNull @NotNull Task<Void> task) {
+
+
+                                                finish();
+
+                                                Toast.makeText(SingleOrderActivity.this, "Done", Toast.LENGTH_LONG).show();
+
+
+                                            }
+                                        });
+
+                                    } else {
+
+                                        Toast.makeText(SingleOrderActivity.this, "Try Again.", Toast.LENGTH_LONG).show();
+
+                                    }
+
+                                }
+                            });
+
+
+                        } else {
+                            Toast.makeText(SingleOrderActivity.this, "Try Again.", Toast.LENGTH_LONG).show();
+
+                        }
+                    }
+                });
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
 
             }
         });

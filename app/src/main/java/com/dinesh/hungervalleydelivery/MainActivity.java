@@ -14,7 +14,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String PREFS_NAME = "MyPrefsFile";
     String user_id, token,name;
-    Button orders;
+    Button orders,completedOrders;
 
 
     @Override
@@ -35,12 +35,24 @@ public class MainActivity extends AppCompatActivity {
 
         Toast.makeText(this, user_id, Toast.LENGTH_SHORT).show();
         orders = findViewById(R.id.orders);
+        completedOrders = findViewById(R.id.completed_orders);
 
         orders.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
                 Intent intent = new Intent(MainActivity.this, NewOrdersActivity.class);
+                intent.putExtra("user_id", user_id);
+                startActivity(intent);
+
+            }
+        });
+
+        completedOrders.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                Intent intent = new Intent(MainActivity.this, CompletedOrders.class);
                 intent.putExtra("user_id", user_id);
                 startActivity(intent);
 
